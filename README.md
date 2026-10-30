@@ -60,5 +60,5 @@ export TF_VAR_aws_endpoint=http://localhost:5055
 terraform init && terraform apply -auto-approve
 AWS_ENDPOINT=http://localhost:5055 ../scripts/simulate-drift.sh
 terraform plan -refresh-only -out=drift.tfplan
-pip install git+https://github.com/mikonoid/tfscout && tfscout drift drift.tfplan
+pip install tfscout && tfscout drift drift.tfplan
 ```

@@ -46,7 +46,7 @@ jobs:
       # ------------------------------------------------------------------
       # This is the only part a real user adds to their own workflow:
       - name: tfscout drift
-        uses: mikonoid/tfscout@main
+        uses: mikonoid/tfscout@v0
         with:
           mode: drift
           working-directory: infra
