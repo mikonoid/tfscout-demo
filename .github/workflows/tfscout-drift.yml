@@ -37,7 +37,7 @@ jobs:
 
       - name: Someone changes production by hand
         if: inputs.simulate == 'drift'
-        run: scripts/simulate-drift.sh
+        run: bash scripts/simulate-drift.sh
 
       - name: Detect drift
         working-directory: infra
