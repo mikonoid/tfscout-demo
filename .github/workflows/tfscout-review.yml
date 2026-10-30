@@ -1,0 +1,59 @@
+name: tfscout review
+
+# Every pull request that touches infra/ gets a tfscout comment.
+# "Production" is simulated: the main branch is applied to a fresh Moto (AWS emulator) first,
+# then the PR branch is planned against that state, exactly like a real `terraform plan` in CI.
+on:
+  pull_request:
+    paths: ["infra/**", ".github/workflows/tfscout-review.yml"]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    services:
+      moto:
+        image: motoserver/moto:5.2.5
+        ports: ["5000:5000"]
+    steps:
+      - name: Checkout main (current production)
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+
+      - name: Checkout pull request
+        uses: actions/checkout@v7
+        with:
+          path: pr
+
+      - uses: hashicorp/setup-terraform@v4
+
+      - name: Apply main to the emulator (simulated production)
+        working-directory: base/infra
+        run: |
+          terraform init -input=false
+          terraform apply -auto-approve -input=false
+
+      - name: Plan the pull request against production state
+        working-directory: pr/infra
+        run: |
+          cp ../../base/infra/terraform.tfstate .
+          terraform init -input=false
+          terraform plan -input=false -out=tfplan
+
+      # ------------------------------------------------------------------
+      # This is the only part a real user adds to their own workflow:
+      - name: tfscout review
+        uses: mikonoid/tfscout@main
+        with:
+          mode: review
+          working-directory: pr/infra
+          plan: tfplan
+          name: demo
+          provider: gemini
+          api-key: ${{ secrets.GEMINI_API_KEY }}
+      # ------------------------------------------------------------------

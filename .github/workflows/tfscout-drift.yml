@@ -1,0 +1,57 @@
+name: tfscout drift
+
+# Run manually from the Actions tab:
+#   simulate = drift     → someone "changes production by hand", tfscout opens/updates an issue
+#   simulate = no-drift  → production matches the code, tfscout closes the issue
+on:
+  workflow_dispatch:
+    inputs:
+      simulate:
+        description: Simulate manual changes in production?
+        type: choice
+        options: [drift, no-drift]
+        default: drift
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    services:
+      moto:
+        image: motoserver/moto:5.2.5
+        ports: ["5000:5000"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_wrapper: false
+
+      - name: Apply main to the emulator (simulated production)
+        working-directory: infra
+        run: |
+          terraform init -input=false
+          terraform apply -auto-approve -input=false
+
+      - name: Someone changes production by hand
+        if: inputs.simulate == 'drift'
+        run: scripts/simulate-drift.sh
+
+      - name: Detect drift
+        working-directory: infra
+        run: terraform plan -refresh-only -input=false -out=drift.tfplan
+
+      # ------------------------------------------------------------------
+      # This is the only part a real user adds to their own workflow:
+      - name: tfscout drift
+        uses: mikonoid/tfscout@main
+        with:
+          mode: drift
+          working-directory: infra
+          plan: drift.tfplan
+          name: demo
+          provider: gemini
+          api-key: ${{ secrets.GEMINI_API_KEY }}
+      # ------------------------------------------------------------------
