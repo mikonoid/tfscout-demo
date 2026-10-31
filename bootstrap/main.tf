@@ -35,6 +35,16 @@ variable "github_repo" {
   default     = "mikonoid/tfscout-demo"
 }
 
+variable "github_sub_prefix" {
+  description = <<-EOT
+    Repositories with immutable OIDC subjects get a `sub` like "repo:owner@123/repo@456:...".
+    Copy sub_claim_prefix from `gh api repos/OWNER/REPO/actions/oidc/customization/sub` if it differs
+    from "repo:OWNER/REPO". Both formats are trusted.
+  EOT
+  type        = string
+  default     = ""
+}
+
 variable "create_oidc_provider" {
   description = "Set to false if token.actions.githubusercontent.com already exists in the account"
   type        = bool
@@ -55,7 +65,8 @@ locals {
   oidc_arn = var.create_oidc_provider ? aws_iam_openid_connect_provider.github[0].arn : (
     "arn:aws:iam::${local.account}:oidc-provider/${local.oidc_host}"
   )
-  prefix = "tfscout-demo"
+  prefix       = "tfscout-demo"
+  sub_prefixes = distinct(compact(["repo:${var.github_repo}", var.github_sub_prefix]))
 }
 
 # --- Terraform state ------------------------------------------------------------------------
@@ -112,7 +123,7 @@ data "aws_iam_policy_document" "trust_any_ref" {
     condition {
       test     = "StringLike"
       variable = "${local.oidc_host}:sub"
-      values   = ["repo:${var.github_repo}:*"]
+      values   = [for p in local.sub_prefixes : "${p}:*"]
     }
   }
 }
@@ -132,7 +143,7 @@ data "aws_iam_policy_document" "trust_main_only" {
     condition {
       test     = "StringEquals"
       variable = "${local.oidc_host}:sub"
-      values   = ["repo:${var.github_repo}:ref:refs/heads/main"]
+      values   = [for p in local.sub_prefixes : "${p}:ref:refs/heads/main"]
     }
   }
 }

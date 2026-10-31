@@ -52,6 +52,9 @@ This creates, in `us-east-1`:
   start EC2 instances or anything else that costs money;
 - optionally a $1/month budget that emails you if anything is ever charged.
 
+If `gh api repos/OWNER/REPO/actions/oidc/customization/sub` shows `"use_immutable_subject": true`, also pass
+`-var github_sub_prefix=<sub_claim_prefix from that output>`; otherwise the workflows cannot assume the roles.
+
 Run the `gh variable set ...` commands it prints. The AWS workflows stay disabled until these variables exist.
 
 ### Workflows
