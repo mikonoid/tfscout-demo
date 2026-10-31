@@ -9,7 +9,7 @@
 # Everything here and in envs/aws is free: no EC2/RDS/NAT, an empty S3 bucket, on-demand DynamoDB without traffic.
 
 terraform {
-  required_version = ">= 1.10"
+  required_version = ">= 1.5"
   required_providers {
     aws = {
       source  = "hashicorp/aws"
