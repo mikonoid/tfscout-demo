@@ -12,7 +12,7 @@ on:
         type: boolean
         default: false
   schedule:
-    - cron: "0 6 * * 1-5"
+    - cron: "*/10 * * * *"  # TEMP: testing scheduled runs, revert to "0 6 * * 1-5"
 
 permissions:
   contents: read
