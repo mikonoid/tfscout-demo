@@ -40,7 +40,7 @@ With admin credentials for your account (e.g. `aws configure` or `aws sso login`
 ```bash
 cd bootstrap
 terraform init
-terraform apply -var budget_email=you@example.com   # budget_email is optional
+terraform apply -var account_id=<your account id> -var budget_email=you@example.com   # budget_email is optional
 ```
 
 This creates, in `us-east-1`:

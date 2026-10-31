@@ -2,7 +2,7 @@
 #
 #   cd bootstrap
 #   terraform init
-#   terraform apply -var budget_email=you@example.com
+#   terraform apply -var account_id=<your account id> -var budget_email=you@example.com
 #
 # Then copy the printed `gh variable set` commands. State of this directory stays local (bootstrap/terraform.tfstate).
 #
@@ -20,6 +20,13 @@ terraform {
 
 provider "aws" {
   region = "us-east-1"
+  # Refuses to run against any other account (e.g. a work profile picked up by mistake).
+  allowed_account_ids = [var.account_id]
+}
+
+variable "account_id" {
+  description = "The personal AWS account to bootstrap; the run fails on any other account"
+  type        = string
 }
 
 variable "github_repo" {
