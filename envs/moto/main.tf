@@ -8,8 +8,8 @@ terraform {
   }
 }
 
-# The demo runs against Moto (https://github.com/getmoto/moto), an open-source AWS emulator started
-# as a service container in CI, so no AWS account or credentials are needed.
+# Runs against Moto (https://github.com/getmoto/moto), an open-source AWS emulator started as a
+# service container in CI. No AWS account or credentials are needed; state is local and throwaway.
 provider "aws" {
   region                      = "us-east-1"
   access_key                  = "test"
@@ -34,4 +34,20 @@ variable "aws_endpoint" {
   description = "AWS API endpoint (Moto)"
   type        = string
   default     = "http://localhost:5000"
+}
+
+module "demo" {
+  source = "../../modules/demo"
+}
+
+output "security_group_id" {
+  value = module.demo.security_group_id
+}
+
+output "bucket" {
+  value = module.demo.bucket
+}
+
+output "log_group" {
+  value = module.demo.log_group
 }

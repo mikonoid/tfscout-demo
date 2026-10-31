@@ -1,0 +1,40 @@
+name: aws review
+
+# Pull requests are planned against the real AWS account with the read-only plan role.
+on:
+  pull_request:
+    paths: ["modules/**", "envs/aws/**", ".github/workflows/aws-review.yml"]
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+jobs:
+  review:
+    if: vars.AWS_PLAN_ROLE_ARN != ''
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: envs/aws
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_wrapper: false
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_PLAN_ROLE_ARN }}
+          aws-region: us-east-1
+      - run: terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
+      - run: terraform plan -input=false -lock=false -out=tfplan
+
+      - name: tfscout review
+        uses: mikonoid/tfscout@v0
+        with:
+          mode: review
+          working-directory: envs/aws
+          plan: tfplan
+          name: aws
+          provider: gemini
+          api-key: ${{ secrets.GEMINI_API_KEY }}

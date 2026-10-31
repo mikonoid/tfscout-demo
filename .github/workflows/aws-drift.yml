@@ -1,0 +1,66 @@
+name: aws drift
+
+# Detects drift in the AWS account. Run it from the Actions tab:
+#   simulate = true   first make "manual" changes with the apply role, then detect them
+#   simulate = false  only detect (e.g. after changing something in the AWS console yourself)
+# Run "aws apply" to revert the drift; the next detection closes the issue.
+on:
+  workflow_dispatch:
+    inputs:
+      simulate:
+        description: Make manual changes first?
+        type: boolean
+        default: false
+  schedule:
+    - cron: "0 6 * * 1-5"
+
+permissions:
+  contents: read
+  issues: write
+  id-token: write
+
+concurrency:
+  group: terraform-aws
+  cancel-in-progress: false
+
+jobs:
+  drift:
+    if: vars.AWS_PLAN_ROLE_ARN != ''
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: envs/aws
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_wrapper: false
+
+      - name: Use the apply role to change production by hand
+        if: inputs.simulate
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_APPLY_ROLE_ARN }}
+          aws-region: us-east-1
+      - name: Someone changes production by hand
+        if: inputs.simulate
+        run: |
+          terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
+          bash ../../scripts/simulate-drift.sh envs/aws
+
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_PLAN_ROLE_ARN }}
+          aws-region: us-east-1
+      - run: terraform init -input=false -reconfigure -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
+      - run: terraform plan -refresh-only -input=false -lock=false -out=drift.tfplan
+
+      - name: tfscout drift
+        uses: mikonoid/tfscout@v0
+        with:
+          mode: drift
+          working-directory: envs/aws
+          plan: drift.tfplan
+          name: aws
+          provider: gemini
+          api-key: ${{ secrets.GEMINI_API_KEY }}

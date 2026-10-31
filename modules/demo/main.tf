@@ -1,8 +1,23 @@
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 6.0"
+    }
+  }
+}
+
 variable "db_password" {
   description = "Demo secret; tfscout must never send it to the LLM"
   type        = string
   sensitive   = true
   default     = "Sup3r-Secret-Demo-Pass!"
+}
+
+variable "name_suffix" {
+  description = "Appended to globally unique names (S3 buckets), e.g. the AWS account id"
+  type        = string
+  default     = ""
 }
 
 locals {
@@ -46,7 +61,7 @@ resource "aws_security_group" "web" {
 # --- Storage --------------------------------------------------------------------------------
 
 resource "aws_s3_bucket" "artifacts" {
-  bucket = "${local.name}-artifacts"
+  bucket = "${local.name}-artifacts${var.name_suffix}"
   # No tags here: the Moto emulator does not round-trip S3 bucket tags, which would show as a permanent diff.
 }
 

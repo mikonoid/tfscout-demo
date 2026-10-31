@@ -1,4 +1,4 @@
-name: tfscout drift
+name: moto drift
 
 # Run manually from the Actions tab:
 #   simulate = drift     → someone "changes production by hand", tfscout opens/updates an issue
@@ -30,17 +30,19 @@ jobs:
           terraform_wrapper: false
 
       - name: Apply main to the emulator (simulated production)
-        working-directory: infra
+        working-directory: envs/moto
         run: |
           terraform init -input=false
           terraform apply -auto-approve -input=false
 
       - name: Someone changes production by hand
         if: inputs.simulate == 'drift'
-        run: bash scripts/simulate-drift.sh
+        run: bash scripts/simulate-drift.sh envs/moto
+        env:
+          AWS_ENDPOINT: http://localhost:5000
 
       - name: Detect drift
-        working-directory: infra
+        working-directory: envs/moto
         run: terraform plan -refresh-only -input=false -out=drift.tfplan
 
       # ------------------------------------------------------------------
@@ -49,9 +51,9 @@ jobs:
         uses: mikonoid/tfscout@v0
         with:
           mode: drift
-          working-directory: infra
+          working-directory: envs/moto
           plan: drift.tfplan
-          name: demo
+          name: moto
           provider: gemini
           api-key: ${{ secrets.GEMINI_API_KEY }}
       # ------------------------------------------------------------------
